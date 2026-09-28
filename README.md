@@ -70,6 +70,14 @@ To run the simulator locally with a small built-in HTTP server instead of GitHub
 
 Both scripts default to port `8000` and open `http://127.0.0.1:8000/docs/`. You can pass a different port if needed.
 
+### Exam creator and history workflow
+
+- Build custom practice exams by setting question count, timer (including no limit), scaled passing score, and an `Avoid repeats from last N completed exams` window.
+- Preview the weighted domain mix before starting an exam.
+- Resume or discard an in-progress exam at any time.
+- Submit exams, review summary entries in exam history, and filter the current exam's post-exam results.
+- The simulator de-duplicates the question pool, samples questions using weighted domains, avoids recent repeats when possible, and falls back to the full unique pool when needed.
+
 ## Documentation
 
 - [Responsible AI and Safe GitHub Copilot Usage](./source/docs/kb/01-responsible-ai-ethics-and-safe-usage.kb.md)  
