@@ -8,10 +8,10 @@ $Url = "http://127.0.0.1:$Port/docs/"
 
 if (Get-Command py -ErrorAction SilentlyContinue) {
     $PythonCommand = "py"
-    $PythonArgs = @("-3", "-m", "http.server", "$Port")
+    $PythonArgs = @("-3", "-m", "http.server", "$Port", "--bind", "127.0.0.1")
 } elseif (Get-Command python -ErrorAction SilentlyContinue) {
     $PythonCommand = "python"
-    $PythonArgs = @("-m", "http.server", "$Port")
+    $PythonArgs = @("-m", "http.server", "$Port", "--bind", "127.0.0.1")
 } else {
     Write-Error "Python is required to start the local exam server."
     exit 1

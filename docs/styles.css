@@ -133,6 +133,10 @@ input {
   font-size: 0.95rem;
 }
 
+.hero .eyebrow {
+  color: #fff;
+}
+
 .button,
 .chip {
   display: inline-flex;

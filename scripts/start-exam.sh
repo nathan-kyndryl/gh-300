@@ -26,4 +26,4 @@ elif command -v open >/dev/null 2>&1; then
 fi
 
 cd "${REPO_ROOT}"
-exec "${PYTHON_BIN}" -m http.server "${PORT}"
+exec "${PYTHON_BIN}" -m http.server "${PORT}" --bind 127.0.0.1
