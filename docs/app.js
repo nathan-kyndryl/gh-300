@@ -110,6 +110,7 @@ async function initialize() {
     elements.questionCount.max = String(uniqueQuestionCount);
     renderQuestionPoolWarning(sourceQuestionCount, uniqueQuestionCount);
 
+    migrateStoredExam();
     hydrateSettings();
     renderDomainMixPreview(elements.questionCount.value);
     renderHistory();
@@ -179,7 +180,9 @@ function syncPresetButtons(container, value) {
 function hydrateSettings() {
   const questionCount = state.settings.questionCount ?? defaults.questionCount;
   const timeLimit = state.settings.timeLimit ?? defaults.timeLimit;
-  const passingThreshold = normalizePassingThreshold(state.settings.passingThreshold ?? defaults.passingThreshold);
+  const passingThreshold = normalizePassingThreshold(state.settings.passingThreshold ?? defaults.passingThreshold, {
+    allowLegacyPercent: true,
+  });
   const repeatAvoidanceWindow = clampNumber(
     Number(state.settings.repeatAvoidanceWindow ?? defaults.repeatAvoidanceWindow),
     0,
@@ -298,6 +301,20 @@ function refreshResumeCard() {
   const minutes = state.exam.timeLimit > 0 ? `${state.exam.timeLimit} minute timer` : 'no time limit';
   elements.resumeSummary.textContent = `Resume ${state.exam.questions.length} questions (${answeredCount} answered, ${minutes}).`;
   elements.resumeCard.classList.remove('hidden');
+}
+
+function migrateStoredExam() {
+  if (!state.exam) {
+    return;
+  }
+
+  const passingThreshold = normalizePassingThreshold(state.exam.passingThreshold ?? defaults.passingThreshold, {
+    allowLegacyPercent: true,
+  });
+  if (state.exam.passingThreshold !== passingThreshold) {
+    state.exam.passingThreshold = passingThreshold;
+    persistExam();
+  }
 }
 
 function renderHistory() {
@@ -928,14 +945,14 @@ function clampNumber(value, min, max) {
   return Math.min(max, Math.max(min, Math.round(value)));
 }
 
-function normalizePassingThreshold(value) {
+function normalizePassingThreshold(value, { allowLegacyPercent = false } = {}) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) {
     return defaults.passingThreshold;
   }
 
   // Backward compatibility for legacy percent-based saved values.
-  if (numeric > 0 && numeric <= 100) {
+  if (allowLegacyPercent && numeric > 0 && numeric <= 100) {
     return Math.round(numeric * 10);
   }
 
@@ -986,4 +1003,3 @@ function escapeHtml(value) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
-

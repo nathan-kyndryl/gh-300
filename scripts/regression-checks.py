@@ -125,9 +125,9 @@ def main() -> int:
     print("PASS: domain target distribution sums are correct for 30/65/90")
 
     mock_history = [
-        {"questionIds": [str(i) for i in range(1, 66)]},
-        {"questionIds": [str(i) for i in range(66, 131)]},
-        {"questionIds": [str(i) for i in range(131, 196)]},
+        {"questionIds": [f"{i:03d}" for i in range(1, 66)]},
+        {"questionIds": [f"{i:03d}" for i in range(66, 131)]},
+        {"questionIds": [f"{i:03d}" for i in range(131, 196)]},
     ]
 
     unseen_count, pool_count, used_fallback = simulate_pool_selection(unique_pool, mock_history, 65, 3)
