@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GH-300 Practice Exam Simulator</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <div class="hero__content">
+        <p class="eyebrow">Static GitHub Pages app</p>
+        <h1>GH-300 Practice Exam Simulator</h1>
+        <p class="hero__summary">
+          Generate a randomized GH-300-style exam from the repository’s 300 raw practice questions, take it with a timer,
+          and review your results afterwards.
+        </p>
+        <div class="hero__actions">
+          <a class="button button--ghost" href="https://github.com/nathan-kyndryl/gh-300" target="_blank" rel="noreferrer">View Repository</a>
+          <a class="button button--ghost" href="https://github.com/nathan-kyndryl/gh-300/blob/main/source/docs/practice/raw/01-practice-test.raw.md" target="_blank" rel="noreferrer">Raw Question Source</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section id="loading-card" class="card">
+        <h2>Loading question bank…</h2>
+        <p>Please wait while the simulator loads the prebuilt question bank.</p>
+      </section>
+
+      <section id="error-card" class="card hidden" aria-live="polite"></section>
+
+      <section id="config-screen" class="hidden">
+        <div class="grid grid--two">
+          <article class="card">
+            <h2>Configure your exam</h2>
+            <form id="config-form" class="stack">
+              <div>
+                <label for="question-count">Number of questions</label>
+                <div class="preset-row" id="question-presets">
+                  <button type="button" class="chip" data-value="30">30</button>
+                  <button type="button" class="chip" data-value="65">65</button>
+                  <button type="button" class="chip" data-value="90">90</button>
+                  <button type="button" class="chip" data-value="300">Full pool</button>
+                </div>
+                <input id="question-count" name="questionCount" type="number" min="1" max="300" inputmode="numeric" required />
+                <p id="question-pool-warning" class="field-note hidden" aria-live="polite"></p>
+              </div>
+
+              <div>
+                <label for="time-limit">Time limit (minutes)</label>
+                <div class="preset-row" id="time-presets">
+                  <button type="button" class="chip" data-value="60">60</button>
+                  <button type="button" class="chip" data-value="100">100</button>
+                  <button type="button" class="chip" data-value="120">120</button>
+                  <button type="button" class="chip" data-value="0">No limit</button>
+                </div>
+                <input id="time-limit" name="timeLimit" type="number" min="0" max="600" inputmode="numeric" />
+                <p class="field-note">Use <strong>0</strong> for no time limit.</p>
+              </div>
+
+              <div>
+                <label for="passing-threshold">Passing score (scaled, out of 1000)</label>
+                <input id="passing-threshold" name="passingThreshold" type="number" min="0" max="1000" inputmode="numeric" required />
+                <p class="field-note">Use <strong>700</strong> to simulate the official passing score.</p>
+              </div>
+
+              <div>
+                <label for="repeat-window">Avoid repeats from last N completed exams</label>
+                <input id="repeat-window" name="repeatWindow" type="number" min="0" max="10" inputmode="numeric" required />
+                <p class="field-note">Set to <strong>0</strong> to disable cross-exam repeat avoidance.</p>
+                <p class="field-note">If the unseen pool is too small for your requested count, the simulator automatically falls back to the full unique pool.</p>
+              </div>
+
+              <div class="card card--subtle" id="domain-mix-card">
+                <h3>Domain Mix Preview</h3>
+                <p class="field-note">Estimated target question counts for this exam length.</p>
+                <div id="domain-mix-list" class="domain-mix-list"></div>
+              </div>
+
+              <div class="card card--subtle hidden" id="resume-card">
+                <h3>Resume in-progress exam?</h3>
+                <p id="resume-summary"></p>
+                <div class="action-row">
+                  <button type="button" id="resume-exam" class="button">Resume exam</button>
+                  <button type="button" id="discard-exam" class="button button--ghost">Discard</button>
+                </div>
+              </div>
+
+              <div class="action-row">
+                <button type="submit" class="button">Start exam</button>
+              </div>
+            </form>
+          </article>
+
+          <article class="card">
+            <h2>Exam history</h2>
+            <div id="history-empty" class="empty-state hidden">No practice exams taken yet.</div>
+            <div id="history-list" class="stack"></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="exam-screen" class="hidden">
+        <div class="grid grid--exam">
+          <article class="card">
+            <div class="exam-header">
+              <div>
+                <p class="eyebrow">Question <span id="question-position">1</span> of <span id="question-total">1</span></p>
+                <h2 id="question-id">Question 001</h2>
+              </div>
+              <div class="timer-wrap">
+                <span class="timer-label">Time remaining</span>
+                <strong id="timer">No limit</strong>
+              </div>
+            </div>
+
+            <div class="status-row">
+              <span id="question-type" class="badge"></span>
+              <button type="button" id="mark-review" class="button button--ghost button--small">Mark for review</button>
+            </div>
+
+            <div id="question-text" class="markdown-block question-text"></div>
+            <form id="answers-form" class="stack"></form>
+
+            <div class="exam-actions">
+              <button type="button" id="previous-question" class="button button--ghost">Previous</button>
+              <button type="button" id="next-question" class="button">Next</button>
+            </div>
+          </article>
+
+          <aside class="card">
+            <h2>Navigator</h2>
+            <p class="field-note">Answered, current, and marked-for-review questions are highlighted below.</p>
+            <div id="navigator-grid" class="navigator-grid"></div>
+            <div class="legend">
+              <span><i class="legend-swatch legend-swatch--current"></i> Current</span>
+              <span><i class="legend-swatch legend-swatch--answered"></i> Answered</span>
+              <span><i class="legend-swatch legend-swatch--marked"></i> Marked</span>
+            </div>
+            <button type="button" id="submit-exam" class="button button--danger">Submit exam</button>
+          </aside>
+        </div>
+      </section>
+
+      <section id="results-screen" class="hidden">
+        <article class="card">
+          <h2>Exam results</h2>
+          <div class="results-summary">
+            <div>
+              <span class="results-label">Score</span>
+              <strong id="results-score"></strong>
+            </div>
+            <div>
+              <span class="results-label">Correct</span>
+              <strong id="results-correct"></strong>
+            </div>
+            <div>
+              <span class="results-label">Status</span>
+              <strong id="results-status"></strong>
+            </div>
+          </div>
+          <div class="action-row results-filters" id="results-filters" role="group" aria-label="Filter reviewed answers">
+            <button type="button" id="results-filter-all" class="button button--ghost button--small active">Show all</button>
+            <button type="button" id="results-filter-incorrect" class="button button--ghost button--small">Show incorrect</button>
+            <button type="button" id="results-filter-correct" class="button button--ghost button--small">Show correct</button>
+          </div>
+          <div class="action-row">
+            <button type="button" id="new-exam" class="button">Generate new exam</button>
+          </div>
+        </article>
+
+        <div id="results-review" class="stack stack--large"></div>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
