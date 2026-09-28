@@ -54,6 +54,15 @@ Use **official docs** when you want the **full depth, latest wording, and origin
 -  Revisit the knowledge documents after practice so the ideas become clearer and easier to retain.
 -  As you revise, aim to explain concepts in your own words instead of memorizing wording.
 
+## Practice Exam Simulator
+
+This repository now includes a static GH-300 practice exam simulator that can be hosted directly with GitHub Pages:
+
+- Hosted URL: [https://nathan-kyndryl.github.io/gh-300/](https://nathan-kyndryl.github.io/gh-300/)
+- App source: [`/docs`](./docs/)
+
+If GitHub Pages is not enabled yet for your fork or repository, enable it in **Settings → Pages** and configure it to deploy from the `main` branch `/docs` folder. Once Pages is enabled, the app will be available at `https://<owner>.github.io/gh-300/`.
+
 ## Documentation
 
 - [Responsible AI and Safe GitHub Copilot Usage](./source/docs/kb/01-responsible-ai-ethics-and-safe-usage.kb.md)  
