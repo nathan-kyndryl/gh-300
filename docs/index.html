@@ -39,7 +39,7 @@
                 <label for="question-count">Number of questions</label>
                 <div class="preset-row" id="question-presets">
                   <button type="button" class="chip" data-value="30">30</button>
-                  <button type="button" class="chip" data-value="60">60</button>
+                  <button type="button" class="chip" data-value="65">65</button>
                   <button type="button" class="chip" data-value="90">90</button>
                   <button type="button" class="chip" data-value="300">Full pool</button>
                 </div>
@@ -50,7 +50,7 @@
                 <label for="time-limit">Time limit (minutes)</label>
                 <div class="preset-row" id="time-presets">
                   <button type="button" class="chip" data-value="60">60</button>
-                  <button type="button" class="chip" data-value="90">90</button>
+                  <button type="button" class="chip" data-value="100">100</button>
                   <button type="button" class="chip" data-value="120">120</button>
                   <button type="button" class="chip" data-value="0">No limit</button>
                 </div>
@@ -59,8 +59,9 @@
               </div>
 
               <div>
-                <label for="passing-threshold">Passing threshold (%)</label>
-                <input id="passing-threshold" name="passingThreshold" type="number" min="1" max="100" inputmode="numeric" required />
+                <label for="passing-threshold">Passing score (scaled, out of 1000)</label>
+                <input id="passing-threshold" name="passingThreshold" type="number" min="0" max="1000" inputmode="numeric" required />
+                <p class="field-note">Use <strong>700</strong> to simulate the official passing score.</p>
               </div>
 
               <div class="card card--subtle hidden" id="resume-card">

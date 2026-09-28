@@ -5,12 +5,13 @@ const STORAGE_KEYS = {
 };
 
 const defaults = {
-  questionCount: 90,
-  timeLimit: 120,
-  passingThreshold: 70,
+  questionCount: 65,
+  timeLimit: 100,
+  passingThreshold: 700,
 };
 
 const choosePattern = /\bchoose\s+(two|three|four|all that apply)\b/i;
+const scenarioPattern = /\b(scenario|workflow|pull request|incident|team|organization|enterprise|best fit|best approach|what should you do)\b/i;
 
 const state = {
   questionBank: null,
@@ -127,9 +128,18 @@ function syncPresetButtons(container, value) {
 }
 
 function hydrateSettings() {
-  elements.questionCount.value = state.settings.questionCount ?? defaults.questionCount;
-  elements.timeLimit.value = state.settings.timeLimit ?? defaults.timeLimit;
-  elements.passingThreshold.value = state.settings.passingThreshold ?? defaults.passingThreshold;
+  const questionCount = state.settings.questionCount ?? defaults.questionCount;
+  const timeLimit = state.settings.timeLimit ?? defaults.timeLimit;
+  const passingThreshold = normalizePassingThreshold(state.settings.passingThreshold ?? defaults.passingThreshold);
+
+  if (state.settings.passingThreshold !== passingThreshold) {
+    state.settings.passingThreshold = passingThreshold;
+    localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify(state.settings));
+  }
+
+  elements.questionCount.value = questionCount;
+  elements.timeLimit.value = timeLimit;
+  elements.passingThreshold.value = passingThreshold;
   syncPresetButtons(elements.questionPresets, elements.questionCount.value);
   syncPresetButtons(elements.timePresets, elements.timeLimit.value);
 }
@@ -143,7 +153,7 @@ function handleStartExam(event) {
   const totalQuestions = state.questionBank.totalQuestions || state.questionBank.questions.length;
   const questionCount = clampNumber(Number(elements.questionCount.value), 1, totalQuestions);
   const timeLimit = clampNumber(Number(elements.timeLimit.value || 0), 0, 600);
-  const passingThreshold = clampNumber(Number(elements.passingThreshold.value), 1, 100);
+  const passingThreshold = clampNumber(normalizePassingThreshold(Number(elements.passingThreshold.value)), 0, 1000);
 
   state.settings = {
     questionCount,
@@ -233,7 +243,7 @@ function renderHistory() {
     const item = document.createElement('article');
     item.className = 'history-item';
     item.innerHTML = `
-      <strong>${entry.percentage}% (${entry.correct}/${entry.total})</strong>
+      <strong>${entry.scaledScore ?? Math.round((entry.percentage / 100) * 1000)}/1000 (${entry.percentage}%)</strong>
       <div class="field-note">${new Date(entry.completedAt).toLocaleString()}</div>
       <div class="field-note">${entry.questionCount} questions · ${entry.autoSubmitted ? 'Auto-submitted' : 'Submitted manually'}</div>
     `;
@@ -253,7 +263,7 @@ function renderExam() {
   elements.questionPosition.textContent = String(questionIndex + 1);
   elements.questionTotal.textContent = String(state.exam.questions.length);
   elements.questionId.textContent = `Question ${currentQuestion.id}`;
-  elements.questionType.textContent = currentQuestion.multiSelect ? 'Multi-select' : 'Single-select';
+  elements.questionType.textContent = getQuestionTypeLabel(currentQuestion);
   elements.markReview.textContent = isMarked(currentQuestion.id) ? 'Marked for review' : 'Mark for review';
   elements.questionText.innerHTML = renderMarkdownBlock(currentQuestion.text);
 
@@ -375,6 +385,7 @@ function finalizeExam({ autoSubmitted }) {
     correct: results.correctCount,
     total: results.totalQuestions,
     percentage: results.percentage,
+    scaledScore: results.scaledScore,
     autoSubmitted,
   };
   state.history = [historyEntry, ...state.history].slice(0, 10);
@@ -391,9 +402,9 @@ function renderResults() {
   }
 
   const { results } = state.exam;
-  elements.resultsScore.textContent = `${results.percentage}%`;
+  elements.resultsScore.textContent = `${results.scaledScore}/1000 (${results.percentage}%)`;
   elements.resultsCorrect.textContent = `${results.correctCount}/${results.totalQuestions}`;
-  elements.resultsStatus.textContent = results.passed ? 'Pass' : 'Needs more practice';
+  elements.resultsStatus.textContent = results.passed ? `Pass (>= ${state.exam.passingThreshold}/1000)` : `Needs more practice (< ${state.exam.passingThreshold}/1000)`;
   elements.resultsStatus.style.color = results.passed ? 'var(--success)' : 'var(--danger)';
 
   elements.resultsReview.innerHTML = '';
@@ -456,12 +467,14 @@ function gradeExam(exam) {
 
   const correctCount = reviewedQuestions.filter((question) => question.correct).length;
   const percentage = Math.round((correctCount / reviewedQuestions.length) * 100);
+  const scaledScore = Math.round((correctCount / reviewedQuestions.length) * 1000);
 
   return {
     correctCount,
     totalQuestions: reviewedQuestions.length,
     percentage,
-    passed: percentage >= exam.passingThreshold,
+    scaledScore,
+    passed: scaledScore >= normalizePassingThreshold(exam.passingThreshold),
     questions: reviewedQuestions,
   };
 }
@@ -572,6 +585,32 @@ function clampNumber(value, min, max) {
     return min;
   }
   return Math.min(max, Math.max(min, Math.round(value)));
+}
+
+function normalizePassingThreshold(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return defaults.passingThreshold;
+  }
+
+  // Backward compatibility for legacy percent-based saved values.
+  if (numeric > 0 && numeric <= 100) {
+    return Math.round(numeric * 10);
+  }
+
+  return Math.round(numeric);
+}
+
+function getQuestionTypeLabel(question) {
+  if (question.multiSelect) {
+    return 'Multiple-response';
+  }
+
+  if (scenarioPattern.test(question.text)) {
+    return 'Scenario-based workflow';
+  }
+
+  return 'Multiple-choice';
 }
 
 function loadStoredJson(key, fallback) {
