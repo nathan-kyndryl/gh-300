@@ -101,6 +101,22 @@ input {
   box-shadow: none;
 }
 
+.domain-mix-list {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.domain-mix-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.93rem;
+}
+
 .stack > * + *,
 .stack--large > * + * {
   margin-top: 1rem;
@@ -201,7 +217,75 @@ input {
 }
 
 .question-text {
-  font-size: 1.05rem;
+  font-size: 1.2rem;
+  line-height: 1.65;
+  margin: 1rem 0 1.4rem;
+}
+
+#exam-screen .status-row {
+  margin-top: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+
+#answers-form {
+  margin-top: 0.35rem;
+}
+
+.drag-panel {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-muted);
+  padding: 0.9rem;
+  margin-bottom: 0.6rem;
+}
+
+.drag-grid {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.drag-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.drag-zone {
+  min-height: 5.25rem;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  padding: 0.55rem;
+  display: grid;
+  gap: 0.5rem;
+  background: #fff;
+}
+
+.drag-zone--active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.drag-zone--empty {
+  align-content: center;
+}
+
+.drag-empty {
+  margin: 0;
+}
+
+.drag-option {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text);
+  padding: 0.6rem 0.75rem;
+  cursor: grab;
+}
+
+.drag-option:active {
+  cursor: grabbing;
 }
 
 .answer-option {

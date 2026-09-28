@@ -44,6 +44,7 @@
                   <button type="button" class="chip" data-value="300">Full pool</button>
                 </div>
                 <input id="question-count" name="questionCount" type="number" min="1" max="300" inputmode="numeric" required />
+                <p id="question-pool-warning" class="field-note hidden" aria-live="polite"></p>
               </div>
 
               <div>
@@ -62,6 +63,12 @@
                 <label for="passing-threshold">Passing score (scaled, out of 1000)</label>
                 <input id="passing-threshold" name="passingThreshold" type="number" min="0" max="1000" inputmode="numeric" required />
                 <p class="field-note">Use <strong>700</strong> to simulate the official passing score.</p>
+              </div>
+
+              <div class="card card--subtle" id="domain-mix-card">
+                <h3>Domain Mix Preview</h3>
+                <p class="field-note">Estimated target question counts for this exam length.</p>
+                <div id="domain-mix-list" class="domain-mix-list"></div>
               </div>
 
               <div class="card card--subtle hidden" id="resume-card">
@@ -107,6 +114,19 @@
             </div>
 
             <div id="question-text" class="markdown-block question-text"></div>
+            <section id="drag-drop-panel" class="drag-panel hidden" aria-live="polite">
+              <p id="drag-drop-help" class="field-note"></p>
+              <div class="drag-grid">
+                <article>
+                  <h3 class="drag-title">Available answers</h3>
+                  <div id="drag-available" class="drag-zone"></div>
+                </article>
+                <article>
+                  <h3 class="drag-title">Selected answers</h3>
+                  <div id="drag-selected" class="drag-zone"></div>
+                </article>
+              </div>
+            </section>
             <form id="answers-form" class="stack"></form>
 
             <div class="exam-actions">

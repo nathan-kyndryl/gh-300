@@ -11,6 +11,12 @@ The simulator now defaults to a profile that more closely mirrors official GH-30
 - Passing score of 700/1000 (scaled)
 - Mixed question styles surfaced in the UI (multiple-choice, multiple-response, and scenario-based workflow)
 
+## Exam assembly behavior
+
+- Questions are deduplicated by ID and normalized content fingerprint before exam generation.
+- Exam generation uses weighted domain sampling aligned with the GH-300 skill mix and then fills any shortfall from the remaining pool.
+- Scenario-style workflow prompts can render in drag-and-drop response mode to mimic interactive exam behavior.
+
 ## Run locally
 
 If you want to launch the app locally without configuring GitHub Pages, use one of the startup scripts from the repository root:
