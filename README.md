@@ -63,6 +63,13 @@ This repository now includes a static GH-300 practice exam simulator that can be
 
 If GitHub Pages is not enabled yet for your fork or repository, enable it in **Settings → Pages** and configure it to deploy from the `main` branch `/docs` folder. Once Pages is enabled, the app will be available at `https://<owner>.github.io/gh-300/`.
 
+To run the simulator locally with a small built-in HTTP server instead of GitHub Pages:
+
+- macOS/Linux: `./scripts/start-exam.sh`
+- Windows PowerShell: `.\scripts\start-exam.ps1`
+
+Both scripts default to port `8000` and open `http://127.0.0.1:8000/docs/`. You can pass a different port if needed.
+
 ## Documentation
 
 - [Responsible AI and Safe GitHub Copilot Usage](./source/docs/kb/01-responsible-ai-ethics-and-safe-usage.kb.md)  
