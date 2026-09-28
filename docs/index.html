@@ -114,19 +114,6 @@
             </div>
 
             <div id="question-text" class="markdown-block question-text"></div>
-            <section id="drag-drop-panel" class="drag-panel hidden" aria-live="polite">
-              <p id="drag-drop-help" class="field-note"></p>
-              <div class="drag-grid">
-                <article>
-                  <h3 class="drag-title">Available answers</h3>
-                  <div id="drag-available" class="drag-zone"></div>
-                </article>
-                <article>
-                  <h3 class="drag-title">Selected answers</h3>
-                  <div id="drag-selected" class="drag-zone"></div>
-                </article>
-              </div>
-            </section>
             <form id="answers-form" class="stack"></form>
 
             <div class="exam-actions">
@@ -165,6 +152,11 @@
               <span class="results-label">Status</span>
               <strong id="results-status"></strong>
             </div>
+          </div>
+          <div class="action-row results-filters" id="results-filters" role="group" aria-label="Filter reviewed answers">
+            <button type="button" id="results-filter-all" class="button button--ghost button--small active">Show all</button>
+            <button type="button" id="results-filter-incorrect" class="button button--ghost button--small">Show incorrect</button>
+            <button type="button" id="results-filter-correct" class="button button--ghost button--small">Show correct</button>
           </div>
           <div class="action-row">
             <button type="button" id="new-exam" class="button">Generate new exam</button>

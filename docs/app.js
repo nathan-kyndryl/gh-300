@@ -32,7 +32,6 @@ const DOMAIN_LABELS = {
 
 const choosePattern = /\bchoose\s+(two|three|four|all that apply)\b/i;
 const scenarioPattern = /\b(scenario|workflow|pull request|incident|team|organization|enterprise|best fit|best approach|what should you do)\b/i;
-const dragAndDropPattern = /\b(scenario|workflow|pull request|incident|best fit|best approach|what should you do)\b/i;
 
 const state = {
   questionBank: null,
@@ -40,6 +39,7 @@ const state = {
   history: loadStoredJson(STORAGE_KEYS.history, []),
   exam: loadStoredJson(STORAGE_KEYS.exam, null),
   timerId: null,
+  resultsFilter: 'all',
 };
 
 const elements = {
@@ -70,10 +70,6 @@ const elements = {
   questionType: document.getElementById('question-type'),
   markReview: document.getElementById('mark-review'),
   questionText: document.getElementById('question-text'),
-  dragDropPanel: document.getElementById('drag-drop-panel'),
-  dragDropHelp: document.getElementById('drag-drop-help'),
-  dragAvailable: document.getElementById('drag-available'),
-  dragSelected: document.getElementById('drag-selected'),
   answersForm: document.getElementById('answers-form'),
   previousQuestion: document.getElementById('previous-question'),
   nextQuestion: document.getElementById('next-question'),
@@ -82,6 +78,10 @@ const elements = {
   resultsScore: document.getElementById('results-score'),
   resultsCorrect: document.getElementById('results-correct'),
   resultsStatus: document.getElementById('results-status'),
+  resultsFilters: document.getElementById('results-filters'),
+  resultsFilterAll: document.getElementById('results-filter-all'),
+  resultsFilterIncorrect: document.getElementById('results-filter-incorrect'),
+  resultsFilterCorrect: document.getElementById('results-filter-correct'),
   resultsReview: document.getElementById('results-review'),
   newExam: document.getElementById('new-exam'),
 };
@@ -139,8 +139,13 @@ function wireEvents() {
   elements.markReview.addEventListener('click', toggleMarkedQuestion);
   elements.answersForm.addEventListener('change', handleAnswerChange);
   elements.submitExam.addEventListener('click', () => finalizeExam({ autoSubmitted: false }));
+  elements.resultsFilterAll?.addEventListener('click', () => setResultsFilter('all'));
+  elements.resultsFilterIncorrect?.addEventListener('click', () => setResultsFilter('incorrect'));
+  elements.resultsFilterCorrect?.addEventListener('click', () => setResultsFilter('correct'));
   elements.newExam.addEventListener('click', () => {
     state.exam = null;
+    state.resultsFilter = 'all';
+    updateResultsFilterButtons();
     persistExam();
     clearTimer();
     refreshResumeCard();
@@ -302,7 +307,6 @@ function renderExam() {
 
   const selectedAnswers = new Set(state.exam.answers[currentQuestion.id] || []);
   const questionIndex = state.exam.currentIndex;
-  const useDragAndDrop = shouldUseDragAndDrop(currentQuestion);
 
   elements.questionPosition.textContent = String(questionIndex + 1);
   elements.questionTotal.textContent = String(state.exam.questions.length);
@@ -311,17 +315,11 @@ function renderExam() {
   elements.markReview.textContent = isMarked(currentQuestion.id) ? 'Marked for review' : 'Mark for review';
   elements.questionText.innerHTML = renderMarkdownBlock(currentQuestion.text);
 
-  elements.answersForm.classList.toggle('hidden', useDragAndDrop);
-  elements.dragDropPanel?.classList.toggle('hidden', !useDragAndDrop);
-
-  if (useDragAndDrop) {
-    renderDragAndDropQuestion(currentQuestion, selectedAnswers);
-  } else {
-    elements.answersForm.innerHTML = '';
-    currentQuestion.options.forEach((option) => {
-      const label = document.createElement('label');
-      label.className = 'answer-option';
-      label.innerHTML = `
+  elements.answersForm.innerHTML = '';
+  currentQuestion.options.forEach((option) => {
+    const label = document.createElement('label');
+    label.className = 'answer-option';
+    label.innerHTML = `
       <input
         type="${currentQuestion.multiSelect ? 'checkbox' : 'radio'}"
         name="answer"
@@ -331,9 +329,8 @@ function renderExam() {
       <span class="answer-option__label">${option.displayKey}.</span>
       <span>${renderMarkdownInline(option.text)}</span>
     `;
-      elements.answersForm.appendChild(label);
-    });
-  }
+    elements.answersForm.appendChild(label);
+  });
 
   elements.previousQuestion.disabled = questionIndex === 0;
   elements.nextQuestion.textContent = questionIndex === state.exam.questions.length - 1 ? 'Review final question' : 'Next';
@@ -462,6 +459,7 @@ function renderResults() {
   results.questions.forEach((review) => {
     const card = document.createElement('article');
     card.className = `card review-card ${review.correct ? 'review-card--correct' : 'review-card--incorrect'}`;
+    card.dataset.correct = review.correct ? 'true' : 'false';
     card.innerHTML = `
       <div class="status-row">
         <strong>Question ${review.id}</strong>
@@ -482,7 +480,7 @@ function renderResults() {
 
             return `
               <div class="${classes.join(' ')}">
-                <strong>${option.displayKey}.</strong> ${renderMarkdownInline(option.text)}
+                <span class="answer-option__label">${option.displayKey}.</span> ${renderMarkdownInline(option.text)}
                 ${option.selected ? '<div class="field-note">Your selection</div>' : ''}
                 ${option.correct ? '<div class="field-note">Correct answer</div>' : ''}
               </div>
@@ -492,6 +490,46 @@ function renderResults() {
       </div>
     `;
     elements.resultsReview.appendChild(card);
+  });
+
+  applyResultsFilter();
+}
+
+function setResultsFilter(filter) {
+  state.resultsFilter = filter;
+  updateResultsFilterButtons();
+  applyResultsFilter();
+}
+
+function updateResultsFilterButtons() {
+  const activeFilter = state.resultsFilter;
+  const mappings = [
+    ['all', elements.resultsFilterAll],
+    ['incorrect', elements.resultsFilterIncorrect],
+    ['correct', elements.resultsFilterCorrect],
+  ];
+
+  mappings.forEach(([value, button]) => {
+    if (!button) {
+      return;
+    }
+    button.classList.toggle('active', value === activeFilter);
+  });
+}
+
+function applyResultsFilter() {
+  if (!elements.resultsReview) {
+    return;
+  }
+
+  const filter = state.resultsFilter;
+  elements.resultsReview.querySelectorAll('.review-card').forEach((card) => {
+    const isCorrect = card.dataset.correct === 'true';
+    const visible =
+      filter === 'all' ||
+      (filter === 'correct' && isCorrect) ||
+      (filter === 'incorrect' && !isCorrect);
+    card.classList.toggle('hidden', !visible);
   });
 }
 
@@ -736,127 +774,6 @@ function inferQuestionDomain(question) {
   return 'useCopilotFeatures';
 }
 
-function shouldUseDragAndDrop(question) {
-  return dragAndDropPattern.test(question.text || '');
-}
-
-function renderDragAndDropQuestion(question, selectedAnswers) {
-  if (!elements.dragAvailable || !elements.dragSelected || !elements.dragDropHelp) {
-    return;
-  }
-
-  elements.dragDropHelp.textContent = question.multiSelect
-    ? 'Drag one or more answers into Selected answers. Drag them back to remove.'
-    : 'Drag one answer into Selected answers. Drag it back to change your choice.';
-
-  const selectedKeys = question.options
-    .map((option) => option.displayKey)
-    .filter((displayKey) => selectedAnswers.has(displayKey));
-  const availableKeys = question.options
-    .map((option) => option.displayKey)
-    .filter((displayKey) => !selectedAnswers.has(displayKey));
-
-  renderDragZone(elements.dragAvailable, availableKeys, question, false);
-  renderDragZone(elements.dragSelected, selectedKeys, question, true);
-  wireDragZoneDropHandlers(question);
-}
-
-function renderDragZone(zoneElement, keys, question, selectedZone) {
-  zoneElement.innerHTML = '';
-  zoneElement.classList.toggle('drag-zone--empty', keys.length === 0);
-
-  if (keys.length === 0) {
-    const empty = document.createElement('p');
-    empty.className = 'field-note drag-empty';
-    empty.textContent = selectedZone ? 'Drop answer(s) here.' : 'No remaining options.';
-    zoneElement.appendChild(empty);
-    return;
-  }
-
-  keys.forEach((displayKey) => {
-    const option = question.options.find((entry) => entry.displayKey === displayKey);
-    if (!option) {
-      return;
-    }
-
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'drag-option';
-    button.draggable = true;
-    button.dataset.value = option.displayKey;
-    button.innerHTML = `<strong>${option.displayKey}.</strong> ${renderMarkdownInline(option.text)}`;
-
-    button.addEventListener('dragstart', (event) => {
-      event.dataTransfer?.setData('text/plain', option.displayKey);
-    });
-
-    button.addEventListener('click', () => {
-      moveDragDropSelection(question, option.displayKey, !selectedZone);
-    });
-
-    zoneElement.appendChild(button);
-  });
-}
-
-function wireDragZoneDropHandlers(question) {
-  const zones = [
-    { element: elements.dragAvailable, select: false },
-    { element: elements.dragSelected, select: true },
-  ];
-
-  zones.forEach(({ element, select }) => {
-    if (!element) {
-      return;
-    }
-
-    element.ondragover = (event) => {
-      event.preventDefault();
-      element.classList.add('drag-zone--active');
-    };
-
-    element.ondragleave = () => {
-      element.classList.remove('drag-zone--active');
-    };
-
-    element.ondrop = (event) => {
-      event.preventDefault();
-      element.classList.remove('drag-zone--active');
-      const value = event.dataTransfer?.getData('text/plain');
-      if (!value) {
-        return;
-      }
-      moveDragDropSelection(question, value, select);
-    };
-  });
-}
-
-function moveDragDropSelection(question, displayKey, select) {
-  const selectedValues = Array.from(new Set(state.exam.answers[question.id] || []));
-  const hasValue = selectedValues.includes(displayKey);
-
-  if (select) {
-    if (!hasValue) {
-      if (question.multiSelect) {
-        selectedValues.push(displayKey);
-      } else {
-        selectedValues.splice(0, selectedValues.length, displayKey);
-      }
-    }
-  } else if (hasValue) {
-    const nextValues = selectedValues.filter((value) => value !== displayKey);
-    selectedValues.splice(0, selectedValues.length, ...nextValues);
-  }
-
-  if (selectedValues.length === 0) {
-    delete state.exam.answers[question.id];
-  } else {
-    state.exam.answers[question.id] = selectedValues;
-  }
-
-  persistExam();
-  renderExam();
-}
-
 function renderQuestionPoolWarning(sourceCount, uniqueCount) {
   if (!elements.questionPoolWarning) {
     return;
@@ -984,7 +901,7 @@ function normalizePassingThreshold(value) {
 
 function getQuestionTypeLabel(question) {
   if (scenarioPattern.test(question.text)) {
-    return shouldUseDragAndDrop(question) ? 'Scenario-based workflow (drag-and-drop)' : 'Scenario-based workflow';
+    return 'Scenario-based workflow';
   }
 
   if (question.multiSelect) {
@@ -994,33 +911,3 @@ function getQuestionTypeLabel(question) {
   return 'Multiple-choice';
 }
 
-function loadStoredJson(key, fallback) {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : fallback;
-  } catch (error) {
-    return fallback;
-  }
-}
-
-function renderMarkdownBlock(text) {
-  return text
-    .split(/\n{2,}/)
-    .map((paragraph) => `<p>${renderMarkdownInline(paragraph).replace(/\n/g, '<br>')}</p>`)
-    .join('');
-}
-
-function renderMarkdownInline(text) {
-  return escapeHtml(text)
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>');
-}
-
-function escapeHtml(value) {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}

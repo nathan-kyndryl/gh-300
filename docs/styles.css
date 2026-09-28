@@ -231,63 +231,6 @@ input {
   margin-top: 0.35rem;
 }
 
-.drag-panel {
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: var(--surface-muted);
-  padding: 0.9rem;
-  margin-bottom: 0.6rem;
-}
-
-.drag-grid {
-  display: grid;
-  gap: 0.8rem;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-}
-
-.drag-title {
-  margin: 0 0 0.5rem;
-  font-size: 0.95rem;
-}
-
-.drag-zone {
-  min-height: 5.25rem;
-  border: 1px dashed var(--border);
-  border-radius: 12px;
-  padding: 0.55rem;
-  display: grid;
-  gap: 0.5rem;
-  background: #fff;
-}
-
-.drag-zone--active {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-}
-
-.drag-zone--empty {
-  align-content: center;
-}
-
-.drag-empty {
-  margin: 0;
-}
-
-.drag-option {
-  width: 100%;
-  text-align: left;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: #fff;
-  color: var(--text);
-  padding: 0.6rem 0.75rem;
-  cursor: grab;
-}
-
-.drag-option:active {
-  cursor: grabbing;
-}
-
 .answer-option {
   display: flex;
   gap: 0.85rem;
@@ -304,7 +247,7 @@ input {
 
 .answer-option__label {
   min-width: 1.75rem;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .navigator-grid {
@@ -366,6 +309,15 @@ input {
 
 .results-summary > div {
   min-width: 8rem;
+}
+
+.results-filters {
+  margin-bottom: 0.9rem;
+}
+
+.results-filters .button.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
 }
 
 .review-card {
