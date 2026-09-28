@@ -65,6 +65,13 @@
                 <p class="field-note">Use <strong>700</strong> to simulate the official passing score.</p>
               </div>
 
+              <div>
+                <label for="repeat-window">Avoid repeats from last N completed exams</label>
+                <input id="repeat-window" name="repeatWindow" type="number" min="0" max="10" inputmode="numeric" required />
+                <p class="field-note">Set to <strong>0</strong> to disable cross-exam repeat avoidance.</p>
+                <p class="field-note">If the unseen pool is too small for your requested count, the simulator automatically falls back to the full unique pool.</p>
+              </div>
+
               <div class="card card--subtle" id="domain-mix-card">
                 <h3>Domain Mix Preview</h3>
                 <p class="field-note">Estimated target question counts for this exam length.</p>

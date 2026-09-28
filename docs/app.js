@@ -8,6 +8,7 @@ const defaults = {
   questionCount: 65,
   timeLimit: 100,
   passingThreshold: 700,
+  repeatAvoidanceWindow: 3,
 };
 
 const DOMAIN_TARGETS = {
@@ -19,6 +20,8 @@ const DOMAIN_TARGETS = {
   productivity: 12.5,
   privacySafeguards: 12.5,
 };
+
+const MAX_REPEAT_AVOIDANCE_WINDOW = 10;
 
 const DOMAIN_LABELS = {
   responsibleUse: 'Use Copilot Responsibly',
@@ -53,6 +56,7 @@ const elements = {
   questionPoolWarning: document.getElementById('question-pool-warning'),
   domainMixCard: document.getElementById('domain-mix-card'),
   domainMixList: document.getElementById('domain-mix-list'),
+  repeatWindow: document.getElementById('repeat-window'),
   timeLimit: document.getElementById('time-limit'),
   passingThreshold: document.getElementById('passing-threshold'),
   questionPresets: document.getElementById('question-presets'),
@@ -89,8 +93,8 @@ const elements = {
 initialize();
 
 async function initialize() {
-  wireEvents();
   try {
+    wireEvents();
     const response = await fetch('./questions.json', { cache: 'no-store' });
     if (!response.ok) {
       throw new Error(`Unable to load question bank (${response.status})`);
@@ -176,15 +180,22 @@ function hydrateSettings() {
   const questionCount = state.settings.questionCount ?? defaults.questionCount;
   const timeLimit = state.settings.timeLimit ?? defaults.timeLimit;
   const passingThreshold = normalizePassingThreshold(state.settings.passingThreshold ?? defaults.passingThreshold);
+  const repeatAvoidanceWindow = clampNumber(
+    Number(state.settings.repeatAvoidanceWindow ?? defaults.repeatAvoidanceWindow),
+    0,
+    MAX_REPEAT_AVOIDANCE_WINDOW
+  );
 
-  if (state.settings.passingThreshold !== passingThreshold) {
+  if (state.settings.passingThreshold !== passingThreshold || state.settings.repeatAvoidanceWindow !== repeatAvoidanceWindow) {
     state.settings.passingThreshold = passingThreshold;
+    state.settings.repeatAvoidanceWindow = repeatAvoidanceWindow;
     localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify(state.settings));
   }
 
   elements.questionCount.value = questionCount;
   elements.timeLimit.value = timeLimit;
   elements.passingThreshold.value = passingThreshold;
+  elements.repeatWindow.value = repeatAvoidanceWindow;
   syncPresetButtons(elements.questionPresets, elements.questionCount.value);
   syncPresetButtons(elements.timePresets, elements.timeLimit.value);
   renderDomainMixPreview(elements.questionCount.value);
@@ -200,23 +211,33 @@ function handleStartExam(event) {
   const questionCount = clampNumber(Number(elements.questionCount.value), 1, uniqueQuestionCount);
   const timeLimit = clampNumber(Number(elements.timeLimit.value || 0), 0, 600);
   const passingThreshold = clampNumber(normalizePassingThreshold(Number(elements.passingThreshold.value)), 0, 1000);
+  const repeatAvoidanceWindow = clampNumber(Number(elements.repeatWindow.value), 0, MAX_REPEAT_AVOIDANCE_WINDOW);
 
   state.settings = {
     questionCount,
     timeLimit,
     passingThreshold,
+    repeatAvoidanceWindow,
   };
   localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify(state.settings));
 
-  state.exam = createExam(questionCount, timeLimit, passingThreshold);
+  state.exam = createExam(questionCount, timeLimit, passingThreshold, repeatAvoidanceWindow);
   persistExam();
   resumeExam();
 }
 
-function createExam(questionCount, timeLimit, passingThreshold) {
+function createExam(questionCount, timeLimit, passingThreshold, repeatAvoidanceWindow) {
   const uniqueQuestionPool = buildUniqueQuestionPool(state.questionBank.questions);
+  const normalizedRepeatWindow = clampNumber(
+    Number(repeatAvoidanceWindow ?? defaults.repeatAvoidanceWindow),
+    0,
+    MAX_REPEAT_AVOIDANCE_WINDOW
+  );
+  const recentQuestionIds = getRecentQuestionIds(state.history, normalizedRepeatWindow);
+  const unseenPool = uniqueQuestionPool.filter((question) => !recentQuestionIds.has(String(question.id)));
   const selectedCount = Math.min(questionCount, uniqueQuestionPool.length);
-  const selectedQuestions = selectWeightedQuestions(uniqueQuestionPool, selectedCount).map((question) =>
+  const primaryPool = unseenPool.length >= selectedCount ? unseenPool : uniqueQuestionPool;
+  const selectedQuestions = selectWeightedQuestions(primaryPool, selectedCount).map((question) =>
     shuffleQuestionOptions(question)
   );
 
@@ -430,6 +451,7 @@ function finalizeExam({ autoSubmitted }) {
   const historyEntry = {
     completedAt: state.exam.submittedAt,
     questionCount: state.exam.questions.length,
+    questionIds: state.exam.questions.map((question) => String(question.id)),
     correct: results.correctCount,
     total: results.totalQuestions,
     percentage: results.percentage,
@@ -814,6 +836,27 @@ function renderDomainMixPreview(questionCount) {
     .join('');
 }
 
+function getRecentQuestionIds(history, examWindow) {
+  const normalizedWindow = clampNumber(
+    Number(examWindow ?? defaults.repeatAvoidanceWindow),
+    0,
+    MAX_REPEAT_AVOIDANCE_WINDOW
+  );
+  const sourceHistory = Array.isArray(history) ? history : [];
+  const recentQuestionIds = new Set();
+  sourceHistory.slice(0, normalizedWindow).forEach((entry) => {
+    if (!Array.isArray(entry.questionIds)) {
+      return;
+    }
+
+    entry.questionIds.forEach((questionId) => {
+      recentQuestionIds.add(String(questionId));
+    });
+  });
+
+  return recentQuestionIds;
+}
+
 function buildUniqueQuestionPool(questions) {
   const seenIds = new Set();
   const seenFingerprints = new Set();
@@ -909,5 +952,38 @@ function getQuestionTypeLabel(question) {
   }
 
   return 'Multiple-choice';
+}
+
+function loadStoredJson(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch (error) {
+    return fallback;
+  }
+}
+
+function renderMarkdownBlock(text) {
+  return text
+    .split(/\n{2,}/)
+    .map((paragraph) => `<p>${renderMarkdownInline(paragraph).replace(/\n/g, '<br>')}</p>`)
+    .join('');
+}
+
+function renderMarkdownInline(text) {
+  const plain = String(text || '')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/\*(.+?)\*/g, '$1');
+
+  return escapeHtml(plain);
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 

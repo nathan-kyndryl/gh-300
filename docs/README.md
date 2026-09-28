@@ -15,7 +15,28 @@ The simulator now defaults to a profile that more closely mirrors official GH-30
 
 - Questions are deduplicated by ID and normalized content fingerprint before exam generation.
 - Exam generation uses weighted domain sampling aligned with the GH-300 skill mix and then fills any shortfall from the remaining pool.
-- Scenario-style workflow prompts can render in drag-and-drop response mode to mimic interactive exam behavior.
+- Cross-exam repeat avoidance can be configured in the UI (`Avoid repeats from last N completed exams`).
+- If the unseen pool is too small for your requested exam size, the simulator falls back to the full unique pool.
+
+## Regression checks
+
+Run the lightweight regression checks from the repository root:
+
+```bash
+python3 scripts/regression-checks.py
+```
+
+Run repeat-window edge-case self-tests:
+
+```bash
+node scripts/repeat-window-selftest.js
+```
+
+The script validates:
+
+- question-bank duplicate handling assumptions
+- weighted domain target distribution sums
+- repeat-avoidance fallback behavior
 
 ## Run locally
 
